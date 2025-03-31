@@ -14,7 +14,7 @@ locals {
   oidc_conditions = var.github_oidc_subject != "" ? {
     "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com",
     "token.actions.githubusercontent.com:sub" = var.github_oidc_subject
-  } : {
+    } : {
     "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
   }
 }
@@ -24,14 +24,14 @@ resource "aws_iam_role" "ci_cd_role" {
   name = "ci-cd-role"
 
   assume_role_policy = jsonencode({
-    Version   = "2012-10-17",
+    Version = "2012-10-17",
     Statement = [
       {
-        Effect    = "Allow",
+        Effect = "Allow",
         Principal = {
           Federated = aws_iam_openid_connect_provider.github_actions.arn
         },
-        Action    = "sts:AssumeRoleWithWebIdentity",
+        Action = "sts:AssumeRoleWithWebIdentity",
         Condition = {
           StringEquals = local.oidc_conditions
         }
@@ -46,12 +46,12 @@ resource "aws_iam_role_policy" "ci_cd_role_policy" {
   role = aws_iam_role.ci_cd_role.id
 
   policy = jsonencode({
-    Version: "2012-10-17",
-    Statement: [
+    Version : "2012-10-17",
+    Statement : [
       {
-        Sid: "AllowPushPull",
-        Effect: "Allow",
-        Action: [
+        Sid : "AllowPushPull",
+        Effect : "Allow",
+        Action : [
           "ecr:BatchGetImage",
           "ecr:BatchCheckLayerAvailability",
           "ecr:CompleteLayerUpload",
@@ -60,13 +60,13 @@ resource "aws_iam_role_policy" "ci_cd_role_policy" {
           "ecr:PutImage",
           "ecr:UploadLayerPart"
         ],
-        Resource: "arn:aws:ecr:${var.aws_region}:${var.aws_account_id}:repository/${var.repository_name}*"
+        Resource : "arn:aws:ecr:${var.aws_region}:${var.aws_account_id}:repository/${var.repository_name}*"
       },
       {
-        Sid: "AllowGetAuthToken",
-        Effect: "Allow",
-        Action: "ecr:GetAuthorizationToken",
-        Resource: "*"
+        Sid : "AllowGetAuthToken",
+        Effect : "Allow",
+        Action : "ecr:GetAuthorizationToken",
+        Resource : "*"
       }
     ]
   })

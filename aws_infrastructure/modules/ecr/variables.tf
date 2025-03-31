@@ -1,6 +1,6 @@
 variable "region_suffix" {
   description = "Region Suffix for ECR repository name"
-  type = string
+  type        = string
 }
 
 variable "repository_name" {
