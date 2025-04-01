@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-init-container
+  labels:
+    app: debug-init-container
+spec:
+  serviceAccountName: node-reader-sa
+  restartPolicy: Never
+  volumes:
+    - name: env-volume
+      emptyDir: {}
+  containers:
+    - name: debug
+      image: alpine:3.21
+      command: ["/bin/sh", "-c", "sleep infinity"]
+      env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+      volumeMounts:
+        - name: env-volume
+          mountPath: /app

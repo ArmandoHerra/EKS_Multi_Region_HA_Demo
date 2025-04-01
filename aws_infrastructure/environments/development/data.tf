@@ -42,6 +42,6 @@ data "aws_subnets" "default_subnets_west" {
 
 # Use local values to pick the first 3 subnets from each list.
 locals {
-  east_subnet_ids = slice(data.aws_subnets.default_subnets_east.ids, 0, 3)
-  west_subnet_ids = slice(data.aws_subnets.default_subnets_west.ids, 0, 3)
+  east_subnet_ids = data.aws_subnets.default_subnets_east.ids
+  west_subnet_ids = data.aws_subnets.default_subnets_west.ids
 }

@@ -38,12 +38,12 @@ variable "eks_managed_node_groups" {
   type        = any
   default = {
     eks_nodes = {
-      desired_capacity = 3
-      max_capacity     = 6
-      min_capacity     = 1
-      instance_type    = "t3.medium"
-      key_name         = ""
-      additional_tags  = {}
+      desired_size    = 3
+      max_size        = 6
+      min_size        = 3
+      instance_types  = ["t3.small"]
+      key_name        = ""
+      additional_tags = {}
     }
   }
 }

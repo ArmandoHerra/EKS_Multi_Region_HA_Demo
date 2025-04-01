@@ -34,19 +34,19 @@ variable "availability_zones" {
 variable "eks_managed_node_groups" {
   description = "Map of managed node group configurations"
   type = map(object({
-    desired_capacity = number
-    max_capacity     = number
-    min_capacity     = number
-    instance_type    = string
+    desired_size = number
+    max_size     = number
+    min_size     = number
+    instance_types    = list(string)
     key_name         = optional(string)
     additional_tags  = optional(map(string))
   }))
   default = {
     eks_nodes = {
-      desired_capacity = 3
-      max_capacity     = 6
-      min_capacity     = 1
-      instance_type    = "t3.medium"
+      desired_size  = 3
+      max_size      = 6
+      min_size      = 1
+      instance_types = ["t3.small"]
     }
   }
 }

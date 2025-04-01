@@ -73,9 +73,11 @@ kubeconfig-west:
 # Switch context to the east cluster (you may need to adjust the context name format as output by update-kubeconfig)
 use-east: kubeconfig-east
 	@echo "Switching context to ${CLUSTER_EAST_NAME}..."
+	make kubeconfig-east && \
 	kubectl config use-context arn:aws:eks:$(REGION_EAST):$(AWS_ACCOUNT_ID):cluster/$(CLUSTER_EAST_NAME)
 
 # Switch context to the west cluster
 use-west: kubeconfig-west
 	@echo "Switching context to ${CLUSTER_WEST_NAME}..."
+	make kubeconfig-west && \
 	kubectl config use-context arn:aws:eks:$(REGION_WEST):$(AWS_ACCOUNT_ID):cluster/$(CLUSTER_WEST_NAME)
