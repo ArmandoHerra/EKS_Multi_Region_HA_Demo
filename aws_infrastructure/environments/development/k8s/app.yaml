@@ -35,6 +35,8 @@ metadata:
 spec:
   selector:
     app: basic-demo-microservice-01
+  # Enable for lowered latency
+  externalTrafficPolicy: Local
   ports:
     - protocol: TCP
       port: 80

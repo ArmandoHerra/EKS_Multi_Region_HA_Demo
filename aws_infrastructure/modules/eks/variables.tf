@@ -27,7 +27,6 @@ variable "subnets" {
 variable "availability_zones" {
   description = "List of availability zones to use for the cluster"
   type        = list(string)
-  # Default to three AZs in the specified region.
   default = []
 }
 
@@ -60,5 +59,5 @@ variable "tags" {
 variable "ecr_policy_arn" {
   description = "ARN of the IAM policy that grants read access to the ECR repository. This will be attached to node groups."
   type        = string
-  default     = "" # supply this from the environment (see below)
+  default     = ""
 }

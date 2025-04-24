@@ -11,13 +11,13 @@ REGION_EAST ?= us-east-1
 REGION_WEST ?= us-west-2
 
 
-### ECR
+###### ECR ######
 
 empty-ecr:
 	./empty-ecr.sh basic-demo-microservice-01 east && \
 	./empty-ecr.sh basic-demo-microservice-01 west
 
-### Terraform 
+###### Terraform ######
 
 lint: 
 	terraform fmt -recursive && terraform validate
@@ -56,8 +56,7 @@ destroy:
 	-auto-approve \
 	-state=tfplan
 
-### KubeConfig
-
+###### KubeConfig ######
 .PHONY: kubeconfig-east kubeconfig-west use-east use-west
 
 # Update kubeconfig for the east cluster
@@ -70,14 +69,40 @@ kubeconfig-west:
 	@echo "Updating kubeconfig for ${CLUSTER_WEST_NAME} in ${REGION_WEST}..."
 	aws eks update-kubeconfig --region $(REGION_WEST) --name $(CLUSTER_WEST_NAME)
 
-# Switch context to the east cluster (you may need to adjust the context name format as output by update-kubeconfig)
-use-east: kubeconfig-east
+# Switch context to the east cluster
+use-east: 
 	@echo "Switching context to ${CLUSTER_EAST_NAME}..."
 	make kubeconfig-east && \
 	kubectl config use-context arn:aws:eks:$(REGION_EAST):$(AWS_ACCOUNT_ID):cluster/$(CLUSTER_EAST_NAME)
 
 # Switch context to the west cluster
-use-west: kubeconfig-west
+use-west: 
 	@echo "Switching context to ${CLUSTER_WEST_NAME}..."
 	make kubeconfig-west && \
 	kubectl config use-context arn:aws:eks:$(REGION_WEST):$(AWS_ACCOUNT_ID):cluster/$(CLUSTER_WEST_NAME)
+
+###### K8s App Deployment ######
+.PHONY: deploy-nodereader-sa deploy-app deploy-debug 
+
+# Deploy Node Reader Service Account
+deploy-nodereader-sa:
+	kubectl apply -f k8s/node-reader-sa.yaml
+
+# Deploy Demo K8s Application
+deploy-app:
+	make deploy-nodereader-sa && \
+	kubectl apply -f k8s/app.yaml
+
+# Deploy Application for Debugging
+deploy-debug:
+	make deploy-nodereader-sa && \
+	kubectl apply -f k8s/debug.yaml
+
+###### Curl K8s Service ######
+
+ping-service:
+	@curl -k http://$$(kubectl get svc basic-demo-microservice-01-service \
+	    -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+ping-dns-record:
+	curl -k http://eks-demo.armandoherra.games
