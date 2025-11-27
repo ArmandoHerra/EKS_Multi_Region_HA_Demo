@@ -1,21 +1,13 @@
 #!/bin/bash -x
 
-include ../../.env
-export 
+include ../../../.env
+export
 
 # Define variables for your clusters and AWS account.
-AWS_ACCOUNT_ID ?= 933673765333
-CLUSTER_EAST_NAME ?= eks-cluster-dev-east
-CLUSTER_WEST_NAME ?= eks-cluster-dev-west
+CLUSTER_EAST_NAME ?= $(AWS_CLUSTER_EAST)
+CLUSTER_WEST_NAME ?= $(AWS_CLUSTER_WEST)
 REGION_EAST ?= us-east-1
 REGION_WEST ?= us-west-2
-
-
-###### ECR ######
-
-empty-ecr:
-	./empty-ecr.sh basic-demo-microservice-01 east && \
-	./empty-ecr.sh basic-demo-microservice-01 west
 
 ###### Terraform ######
 
@@ -25,22 +17,23 @@ lint:
 clean:
 	rm -rf .terraform && rm tfplan
 
-init: 
+init:
 	terraform init -input=false \
-	-backend-config="bucket=${REMOTE_BUCKET_NAME}" \
-	-backend-config="dynamodb_table=${REMOTE_DYNAMODB_TABLE}" && \
-	export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+	-backend-config="bucket=${AWS_REMOTE_BUCKET_NAME}" \
+	-backend-config="dynamodb_table=${AWS_REMOTE_DYNAMODB_TABLE}"
 
 refresh:
 	make lint && \
 	terraform refresh \
-	-var "remote_state_bucket=${REMOTE_BUCKET_NAME}" \
+	-var "remote_state_bucket=${AWS_REMOTE_BUCKET_NAME}" \
+	-var "ecr_repo_arn=${AWS_ECR_REPO_ARN}" \
 	-input=false
 
-plan: 
+plan:
 	make lint && \
 	terraform plan \
-	-var "remote_state_bucket=${REMOTE_BUCKET_NAME}" \
+	-var "remote_state_bucket=${AWS_REMOTE_BUCKET_NAME}" \
+	-var "ecr_repo_arn=${AWS_ECR_REPO_ARN}" \
 	-input=false \
 	-out=tfplan
 
@@ -49,12 +42,10 @@ apply:
 
 destroy:
 	make lint && \
-	./empty-ecr.sh basic-demo-microservice-01 east && \
-	./empty-ecr.sh basic-demo-microservice-01 west && \
 	terraform destroy \
-	-var "remote_state_bucket=${REMOTE_BUCKET_NAME}" \
-	-auto-approve \
-	-state=tfplan
+	-var "remote_state_bucket=${AWS_REMOTE_BUCKET_NAME}" \
+	-var "ecr_repo_arn=${AWS_ECR_REPO_ARN}" \
+	-auto-approve
 
 ###### KubeConfig ######
 .PHONY: kubeconfig-east kubeconfig-west use-east use-west
@@ -70,13 +61,13 @@ kubeconfig-west:
 	aws eks update-kubeconfig --region $(REGION_WEST) --name $(CLUSTER_WEST_NAME)
 
 # Switch context to the east cluster
-use-east: 
+use-east:
 	@echo "Switching context to ${CLUSTER_EAST_NAME}..."
 	make kubeconfig-east && \
 	kubectl config use-context arn:aws:eks:$(REGION_EAST):$(AWS_ACCOUNT_ID):cluster/$(CLUSTER_EAST_NAME)
 
 # Switch context to the west cluster
-use-west: 
+use-west:
 	@echo "Switching context to ${CLUSTER_WEST_NAME}..."
 	make kubeconfig-west && \
 	kubectl config use-context arn:aws:eks:$(REGION_WEST):$(AWS_ACCOUNT_ID):cluster/$(CLUSTER_WEST_NAME)

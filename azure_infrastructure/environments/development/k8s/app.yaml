@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: basic-demo-microservice-01
+  labels:
+    app: basic-demo-microservice-01
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: basic-demo-microservice-01
+  template:
+    metadata:
+      labels:
+        app: basic-demo-microservice-01
+    spec:
+      serviceAccountName: node-reader-sa
+      containers:
+        - name: basic-demo-microservice-01
+          # Update ACR_NAME to match your registry name (e.g., aksmultiregiondemoacr.azurecr.io)
+          image: aksmultiregiondemoacr.azurecr.io/basic-demo-microservice-01:latest
+          ports:
+            - containerPort: 80
+          env:
+            - name: APP_VERSION
+              value: "1.0.0"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: basic-demo-microservice-01-service
+spec:
+  selector:
+    app: basic-demo-microservice-01
+  # Enable for lowered latency
+  externalTrafficPolicy: Local
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer
