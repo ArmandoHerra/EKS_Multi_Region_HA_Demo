@@ -91,11 +91,69 @@ variable "subdomain" {
 variable "lb_hostname_east" {
   description = "LoadBalancer hostname for the east region (set after k8s service deployment)"
   type        = string
-  default     = ""
+  default     = "af0b5d56db7444ba282a8ae1cf20dbc9-149072603.us-east-1.elb.amazonaws.com"
 }
 
 variable "lb_hostname_west" {
   description = "LoadBalancer hostname for the west region (set after k8s service deployment)"
   type        = string
-  default     = ""
+  default     = "a1579263112a14a1291db4ae79b23d73-179086245.us-west-2.elb.amazonaws.com"
+}
+
+# =============================================================================
+# Cross-Cloud Failover to Azure
+# =============================================================================
+
+variable "enable_cross_cloud_failover" {
+  description = "Enable cross-cloud failover to Azure AKS"
+  type        = bool
+  default     = true
+}
+
+variable "azure_lb_ip_east" {
+  description = "Azure AKS East US LoadBalancer IP (set after k8s service deployment)"
+  type        = string
+  default     = "172.210.122.34"
+}
+
+variable "azure_lb_ip_west" {
+  description = "Azure AKS West US 2 LoadBalancer IP (set after k8s service deployment)"
+  type        = string
+  default     = "20.3.24.153"
+}
+
+# =============================================================================
+# AWS Multi-Region Pool Configuration
+# =============================================================================
+
+variable "aws_pool_subdomain" {
+  description = "Subdomain for the AWS weighted pool (creates aws-pool.eks-demo.domain.com)"
+  type        = string
+  default     = "aws-pool"
+}
+
+variable "aws_east_weight" {
+  description = "Weight for AWS East region in the weighted pool (0-255)"
+  type        = number
+  default     = 50
+}
+
+variable "aws_west_weight" {
+  description = "Weight for AWS West region in the weighted pool (0-255)"
+  type        = number
+  default     = 50
+}
+
+# ELB Hosted Zone IDs for alias records
+# Reference: https://docs.aws.amazon.com/general/latest/gr/elb.html
+variable "elb_zone_id_east" {
+  description = "ELB hosted zone ID for us-east-1"
+  type        = string
+  default     = "Z35SXDOTRQ7X7K" # us-east-1 Classic/ALB
+}
+
+variable "elb_zone_id_west" {
+  description = "ELB hosted zone ID for us-west-2"
+  type        = string
+  default     = "Z1H1FL5HABSF5" # us-west-2 Classic/ALB
 }
