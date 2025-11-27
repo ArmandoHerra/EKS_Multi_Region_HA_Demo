@@ -133,7 +133,7 @@ resource "aws_route53_health_check" "west" {
   })
 }
 
-# Primary failover record (East region)
+# Weighted record (East region) - 50% traffic
 resource "aws_route53_record" "primary" {
   count           = var.lb_hostname_east != "" ? 1 : 0
   zone_id         = data.aws_route53_zone.main.zone_id
@@ -141,15 +141,15 @@ resource "aws_route53_record" "primary" {
   type            = "CNAME"
   ttl             = 60
   records         = [var.lb_hostname_east]
-  set_identifier  = "primary-east"
+  set_identifier  = "weighted-east"
   health_check_id = aws_route53_health_check.east[0].id
 
-  failover_routing_policy {
-    type = "PRIMARY"
+  weighted_routing_policy {
+    weight = 50
   }
 }
 
-# Secondary failover record (West region)
+# Weighted record (West region) - 50% traffic
 resource "aws_route53_record" "secondary" {
   count           = var.lb_hostname_west != "" ? 1 : 0
   zone_id         = data.aws_route53_zone.main.zone_id
@@ -157,10 +157,10 @@ resource "aws_route53_record" "secondary" {
   type            = "CNAME"
   ttl             = 60
   records         = [var.lb_hostname_west]
-  set_identifier  = "secondary-west"
+  set_identifier  = "weighted-west"
   health_check_id = aws_route53_health_check.west[0].id
 
-  failover_routing_policy {
-    type = "SECONDARY"
+  weighted_routing_policy {
+    weight = 50
   }
 }
