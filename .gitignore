@@ -36,6 +36,8 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-.claude
 .env
 tfplan
+
+.claude
+CLAUDE.md

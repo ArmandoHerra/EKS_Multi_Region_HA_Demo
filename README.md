@@ -45,7 +45,7 @@ This project deploys a fully redundant infrastructure across two AWS regions:
 | Component | Description |
 |-----------|-------------|
 | **ECR Repositories** | Container registries in both regions with automatic cross-region replication |
-| **EKS Clusters** | Kubernetes 1.32 clusters with managed node groups (3-6 nodes each) |
+| **EKS Clusters** | Kubernetes 1.34 clusters with managed node groups (3-6 nodes each) |
 | **CI/CD IAM** | OIDC-based authentication for GitHub Actions (no stored credentials) |
 | **Demo Application** | Sample microservice deployed with 3 replicas and LoadBalancer |
 
@@ -198,7 +198,7 @@ make empty-ecr
 |----------|---------|-------------|
 | `aws_region` | `us-east-1` | Primary AWS region |
 | `cluster_name` | `eks-cluster-dev` | Base name for EKS clusters |
-| `cluster_version` | `1.32` | Kubernetes version |
+| `cluster_version` | `1.34` | Kubernetes version |
 | `repository_name` | `basic-demo-microservice-01` | ECR repository name |
 
 ### Node Group Configuration

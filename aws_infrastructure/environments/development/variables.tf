@@ -24,7 +24,7 @@ variable "cluster_name" {
 variable "cluster_version" {
   description = "Kubernetes version for the cluster"
   type        = string
-  default     = "1.32"
+  default     = "1.34"
 }
 
 variable "availability_zones" {
@@ -73,4 +73,29 @@ variable "ecr_repo_arn" {
   description = "ARN of the ECR repository that worker nodes should have read access to"
   type        = string
   default     = "arn:aws:ecr:us-east-1:933673765333:repository/basic-demo-microservice-01"
+}
+
+# Route53 Failover Configuration
+variable "domain_name" {
+  description = "The root domain name for the hosted zone"
+  type        = string
+  default     = "armandoherra.games"
+}
+
+variable "subdomain" {
+  description = "The subdomain for the failover record (e.g., 'eks-demo' creates eks-demo.domain.com)"
+  type        = string
+  default     = "eks-demo"
+}
+
+variable "lb_hostname_east" {
+  description = "LoadBalancer hostname for the east region (set after k8s service deployment)"
+  type        = string
+  default     = ""
+}
+
+variable "lb_hostname_west" {
+  description = "LoadBalancer hostname for the west region (set after k8s service deployment)"
+  type        = string
+  default     = ""
 }

@@ -92,3 +92,75 @@ module "eks_cluster_west" {
   ecr_policy_arn          = aws_iam_policy.ecr_read.arn
   tags                    = var.tags
 }
+
+# =============================================================================
+# Route53 Failover Configuration
+# =============================================================================
+
+# Look up existing hosted zone
+data "aws_route53_zone" "main" {
+  name         = var.domain_name
+  private_zone = false
+}
+
+# Health check for East region LoadBalancer
+resource "aws_route53_health_check" "east" {
+  count             = var.lb_hostname_east != "" ? 1 : 0
+  fqdn              = var.lb_hostname_east
+  port              = 80
+  type              = "HTTP"
+  resource_path     = "/"
+  failure_threshold = 3
+  request_interval  = 30
+
+  tags = merge(var.tags, {
+    Name = "${var.cluster_name}-east-health-check"
+  })
+}
+
+# Health check for West region LoadBalancer
+resource "aws_route53_health_check" "west" {
+  count             = var.lb_hostname_west != "" ? 1 : 0
+  fqdn              = var.lb_hostname_west
+  port              = 80
+  type              = "HTTP"
+  resource_path     = "/"
+  failure_threshold = 3
+  request_interval  = 30
+
+  tags = merge(var.tags, {
+    Name = "${var.cluster_name}-west-health-check"
+  })
+}
+
+# Primary failover record (East region)
+resource "aws_route53_record" "primary" {
+  count           = var.lb_hostname_east != "" ? 1 : 0
+  zone_id         = data.aws_route53_zone.main.zone_id
+  name            = "${var.subdomain}.${var.domain_name}"
+  type            = "CNAME"
+  ttl             = 60
+  records         = [var.lb_hostname_east]
+  set_identifier  = "primary-east"
+  health_check_id = aws_route53_health_check.east[0].id
+
+  failover_routing_policy {
+    type = "PRIMARY"
+  }
+}
+
+# Secondary failover record (West region)
+resource "aws_route53_record" "secondary" {
+  count           = var.lb_hostname_west != "" ? 1 : 0
+  zone_id         = data.aws_route53_zone.main.zone_id
+  name            = "${var.subdomain}.${var.domain_name}"
+  type            = "CNAME"
+  ttl             = 60
+  records         = [var.lb_hostname_west]
+  set_identifier  = "secondary-west"
+  health_check_id = aws_route53_health_check.west[0].id
+
+  failover_routing_policy {
+    type = "SECONDARY"
+  }
+}
