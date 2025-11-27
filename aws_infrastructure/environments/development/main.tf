@@ -1,43 +1,9 @@
-
-# Primary repository in us-east-1
-module "ecr_primary" {
-  source          = "../../modules/ecr"
-  repository_name = var.repository_name
-  region_suffix   = "east"
-  providers = {
-    aws = aws
-  }
-}
-
-# Secondary repository in us-west-2
-module "ecr_secondary" {
-  source          = "../../modules/ecr"
-  repository_name = var.repository_name
-  region_suffix   = "west"
-  providers = {
-    aws = aws.us_west
-  }
-}
-
-# Set up cross-region replication from primary to secondary.
-# This resource uses the primary provider.
-resource "aws_ecr_replication_configuration" "replication" {
-  replication_configuration {
-    rule {
-      # Replicate images to us-west-2.
-      destination {
-        region      = "us-west-2"
-        registry_id = data.aws_caller_identity.current.account_id
-      }
-
-      # This rule applies to repositories with names that start with the given prefix.
-      repository_filter {
-        filter      = var.repository_name
-        filter_type = "PREFIX_MATCH"
-      }
-    }
-  }
-}
+# =============================================================================
+# ECR IAM Policy
+# =============================================================================
+# The ECR repository is managed separately in registries/aws/development/
+# The ECR_REPO_ARN is passed via -var flag from the Makefile
+# =============================================================================
 
 # Create an IAM policy that allows EKS worker nodes to pull images from a specific ECR repository.
 resource "aws_iam_policy" "ecr_read" {
@@ -195,7 +161,7 @@ resource "aws_route53_health_check" "azure_east" {
   request_interval  = 10
 
   tags = merge(var.tags, {
-    Name = "${var.cluster_name}-azure-east-health-check"
+    Name = "aks-cluster-dev-azure-east-health-check"
   })
 }
 
@@ -210,7 +176,7 @@ resource "aws_route53_health_check" "azure_west" {
   request_interval  = 10
 
   tags = merge(var.tags, {
-    Name = "${var.cluster_name}-azure-west-health-check"
+    Name = "aks-cluster-dev-azure-west-health-check"
   })
 }
 
@@ -284,7 +250,7 @@ resource "aws_route53_record" "failover_primary_aws" {
   alias {
     name                   = "${var.aws_pool_subdomain}.${var.subdomain}.${var.domain_name}"
     zone_id                = data.aws_route53_zone.main.zone_id
-    evaluate_target_health = true
+    evaluate_target_health = false # Rely on explicit health_check_id to avoid double-checking
   }
 
   failover_routing_policy {
@@ -303,7 +269,7 @@ resource "aws_route53_health_check" "azure_pool_calculated" {
   ]
 
   tags = merge(var.tags, {
-    Name = "${var.cluster_name}-azure-pool-calculated"
+    Name = "aks-cluster-dev-azure-pool-calculated"
   })
 }
 

@@ -16,18 +16,11 @@ resource "azurerm_resource_group" "west" {
 }
 
 # =============================================================================
-# ACR with Geo-Replication (single instance, replicated to both regions)
+# ACR Configuration
 # =============================================================================
-
-module "acr" {
-  source = "../../modules/acr"
-
-  registry_name       = var.registry_name
-  resource_group_name = azurerm_resource_group.east.name
-  primary_location    = var.azure_region_east
-  secondary_location  = var.azure_region_west
-  tags                = var.tags
-}
+# The ACR is managed separately in registries/azure/development/
+# The ACR_REGISTRY_ID is passed via -var flag from the Makefile
+# =============================================================================
 
 # =============================================================================
 # AKS Cluster - East US
@@ -45,7 +38,7 @@ module "aks_cluster_east" {
   vm_size             = var.vm_size
   min_count           = var.min_count
   max_count           = var.max_count
-  acr_id              = module.acr.registry_id
+  acr_id              = var.acr_registry_id
   enable_acr_pull     = true
   tags                = var.tags
 }
@@ -69,7 +62,7 @@ module "aks_cluster_west" {
   vm_size             = var.vm_size
   min_count           = var.min_count
   max_count           = var.max_count
-  acr_id              = module.acr.registry_id
+  acr_id              = var.acr_registry_id
   enable_acr_pull     = true
   tags                = var.tags
 }

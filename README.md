@@ -9,7 +9,7 @@ This project deploys a fully redundant infrastructure across two AWS regions wit
 ```
                               ┌─────────────────────┐
                               │   Route53 (DNS)     │
-                              │  eks-demo.domain    │
+                              │ multi-cloud.domain  │
                               │  FAILOVER ROUTING   │
                               └──────────┬──────────┘
                                          │
@@ -21,7 +21,7 @@ This project deploys a fully redundant infrastructure across two AWS regions wit
                     │                                        │
                     ▼                                        ▼
        ┌────────────────────────┐                  ┌──────────────────┐
-       │  aws-pool.eks-demo     │                  │   Azure Cloud    │
+       │ aws-pool.multi-cloud   │                  │   Azure Cloud    │
        │   WEIGHTED ROUTING     │                  │  (Standby)       │
        │      (50% / 50%)       │                  │                  │
        └───────────┬────────────┘                  │ eastus + westus2 │
@@ -121,18 +121,73 @@ azure_infrastructure/
     └── remote-state/            # Terraform state backend (Azure Storage)
 ```
 
+## Quick Start (Root Makefile)
+
+The root Makefile provides orchestration commands that run AWS and Azure operations in parallel:
+
+```bash
+# Configure environment variables in .env (see Configuration section)
+
+# Deploy all infrastructure (registries first, then clusters)
+make init              # Initialize Terraform for all components
+make plan              # Plan all changes
+make apply             # Apply all infrastructure
+
+# Or deploy step-by-step
+make apply-registries  # Deploy ECR + ACR in parallel
+make apply-clusters    # Deploy EKS + AKS in parallel
+
+# Switch kubectl context and deploy apps
+make use-aws-east           # Switch to EKS East
+make deploy-app-aws-east    # Deploy app to EKS East
+make deploy-app-all         # Deploy to all 4 clusters in parallel
+
+# Failover testing
+make failover          # Scale AWS deployments to 0 (simulate failure)
+make revert            # Scale AWS deployments back to 3
+make validate-traffic  # Validate DNS, health checks, and all endpoints
+
+# Cleanup
+make destroy           # Destroy all (clusters first, then registries)
+```
+
+Run `make help` at the project root to see all available commands.
+
 ## Setup & Deployment
 
 ### AWS Infrastructure
 
 #### 1. Configure Environment Variables
 
-Create a `.env` file in `aws_infrastructure/` with your configuration:
+Create a `.env` file in the **project root** with your configuration:
 
 ```bash
-REMOTE_BUCKET_NAME=your-terraform-state-bucket
-REMOTE_DYNAMODB_TABLE=your-terraform-lock-table
+# AWS Configuration
 AWS_DEFAULT_REGION=us-east-1
+AWS_REMOTE_BUCKET_NAME=your-terraform-state-bucket
+AWS_REMOTE_DYNAMODB_TABLE=your-terraform-lock-table
+AWS_ACCOUNT_ID=your-aws-account-id
+AWS_CLUSTER_EAST=eks-cluster-dev-east
+AWS_CLUSTER_WEST=eks-cluster-dev-west
+
+# Azure Configuration
+AZURE_STORAGE_ACCOUNT_NAME=your-storage-account
+AZURE_CONTAINER_NAME=tfstate
+AZURE_STATE_RESOURCE_GROUP=your-state-rg
+AZURE_CLUSTER_EAST=aks-cluster-dev-east
+AZURE_CLUSTER_WEST=aks-cluster-dev-west
+AZURE_RG_EAST=your-resource-group-east
+AZURE_RG_WEST=your-resource-group-west
+
+# Kubernetes Application
+K8S_DEPLOYMENT_NAME=basic-demo-microservice-01
+K8S_NAMESPACE=default
+K8S_REPLICAS=3
+
+# DNS Configuration (for traffic validation)
+DOMAIN_NAME=your-domain.com
+SUBDOMAIN=multi-cloud
+AWS_POOL_SUBDOMAIN=aws-pool
 ```
 
 #### 2. Initialize Terraform
@@ -197,13 +252,7 @@ Re-run `make plan && make apply` to create the Route53 health checks and weighte
 
 #### 1. Configure Environment Variables
 
-Create a `.env` file in `azure_infrastructure/` with your configuration:
-
-```bash
-STORAGE_ACCOUNT_NAME=your-storage-account
-CONTAINER_NAME=tfstate
-STATE_RESOURCE_GROUP=your-state-rg
-```
+Ensure the Azure variables are set in the **root `.env` file** (see AWS section above).
 
 #### 2. Initialize and Deploy
 
@@ -253,12 +302,41 @@ Re-run AWS Terraform to create failover routing (AWS primary, Azure secondary).
 
 ### Switching Between Clusters
 
+**From project root:**
 ```bash
-# Switch kubectl context to us-east-1 cluster
-make use-east
+make use-aws-east      # Switch to EKS East (us-east-1)
+make use-aws-west      # Switch to EKS West (us-west-2)
+make use-azure-east    # Switch to AKS East (eastus)
+make use-azure-west    # Switch to AKS West (westus2)
+```
 
-# Switch kubectl context to us-west-2 cluster
-make use-west
+**From cloud-specific directories:**
+```bash
+# AWS (from aws_infrastructure/environments/development/)
+make use-east          # Switch to us-east-1 cluster
+make use-west          # Switch to us-west-2 cluster
+
+# Azure (from azure_infrastructure/environments/development/)
+make use-east          # Switch to eastus cluster
+make use-west          # Switch to westus2 cluster
+```
+
+### Deploying the Application
+
+**From project root (recommended):**
+```bash
+make deploy-app-aws-east     # Deploy to EKS East
+make deploy-app-aws-west     # Deploy to EKS West
+make deploy-app-azure-east   # Deploy to AKS East
+make deploy-app-azure-west   # Deploy to AKS West
+make deploy-app-all          # Deploy to all 4 clusters in parallel
+```
+
+**From cloud-specific directories:**
+```bash
+# Ensure you're in the right context first
+make use-east && make deploy-app
+make use-west && make deploy-app
 ```
 
 ### Testing the Application
@@ -307,7 +385,7 @@ make empty-ecr
 | `cluster_version` | `1.34` | Kubernetes version |
 | `repository_name` | `basic-demo-microservice-01` | ECR repository name |
 | `domain_name` | - | Root domain for Route53 hosted zone |
-| `subdomain` | `eks-demo` | Subdomain for failover record |
+| `subdomain` | `multi-cloud` | Subdomain for failover record |
 | `lb_hostname_east` | `""` | East region LoadBalancer hostname |
 | `lb_hostname_west` | `""` | West region LoadBalancer hostname |
 | `enable_cross_cloud_failover` | `false` | Enable nested routing with Azure failover |
@@ -386,8 +464,8 @@ spec:
 2. **Independent EKS Clusters**: Each region has its own fully functional Kubernetes cluster, providing isolation from regional failures.
 
 3. **Route53 Nested Routing**: Two-tier DNS architecture ensures full multi-region coverage:
-   - **AWS Pool** (`aws-pool.eks-demo.domain`): Weighted routing distributes traffic 50/50 between East and West
-   - **Main Record** (`eks-demo.domain`): Failover routing with AWS pool as PRIMARY
+   - **AWS Pool** (`aws-pool.multi-cloud.domain`): Weighted routing distributes traffic 50/50 between East and West
+   - **Main Record** (`multi-cloud.domain`): Failover routing with AWS pool as PRIMARY
    - Health checks monitor each LoadBalancer; unhealthy endpoints are automatically removed
    - Calculated health check aggregates both AWS regions (healthy if at least one region is up)
 
@@ -399,24 +477,55 @@ spec:
 
 7. **Local Traffic Policy**: LoadBalancer services use `externalTrafficPolicy: Local` to route traffic to pods on the same node, reducing cross-AZ latency.
 
-## Cleanup
+## Failover Testing
 
-### AWS Infrastructure
+Test the cross-cloud failover functionality:
 
 ```bash
-cd aws_infrastructure/environments/development
+# 1. Validate all endpoints are healthy
+make validate-traffic
 
-# This will empty ECR repos and destroy all resources
+# 2. Simulate AWS failure (scales deployments to 0)
+make failover
+
+# 3. Wait ~3 minutes for Route53 to detect failure
+#    DNS will automatically failover to Azure endpoints
+
+# 4. Validate traffic is now served by Azure
+make validate-traffic
+
+# 5. Restore AWS deployments
+make revert
+
+# 6. Wait ~3 minutes for Route53 to restore AWS as primary
+make validate-traffic
+```
+
+The `validate-traffic` command provides a comprehensive report including:
+- DNS resolution for main record and AWS pool
+- Route53 health check status for all 4 regions
+- HTTP health checks for each LoadBalancer endpoint
+- Main DNS endpoint connectivity test
+
+## Cleanup
+
+### Destroy All Infrastructure (Recommended)
+
+```bash
+# From project root - destroys clusters first, then registries
 make destroy
 ```
 
-### Azure Infrastructure
+### Destroy Specific Components
 
 ```bash
-cd azure_infrastructure/environments/development
+# From project root
+make destroy-clusters    # Destroy EKS + AKS only
+make destroy-registries  # Destroy ECR + ACR only
 
-# This will empty ACR and destroy all resources
-make destroy
+# Or from cloud-specific directories
+cd aws_infrastructure/environments/development && make destroy
+cd azure_infrastructure/environments/development && make destroy
 ```
 
 ## License

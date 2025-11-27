@@ -22,10 +22,9 @@ variable "azure_region_west" {
   default     = "westus2"
 }
 
-variable "registry_name" {
-  description = "Name of the ACR (must be globally unique, alphanumeric only)"
+variable "acr_registry_id" {
+  description = "ACR resource ID (from registries/azure deployment)"
   type        = string
-  default     = "aksmultiregiondemoacr"
 }
 
 variable "cluster_name" {

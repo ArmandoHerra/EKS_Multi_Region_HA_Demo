@@ -1,18 +1,4 @@
 # =============================================================================
-# ACR Outputs
-# =============================================================================
-
-output "acr_name" {
-  description = "Name of the Azure Container Registry"
-  value       = module.acr.registry_name
-}
-
-output "acr_login_server" {
-  description = "Login server URL for the ACR"
-  value       = module.acr.login_server
-}
-
-# =============================================================================
 # AKS East Outputs
 # =============================================================================
 

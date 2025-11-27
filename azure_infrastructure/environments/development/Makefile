@@ -1,22 +1,13 @@
 #!/bin/bash -x
 
-include ../../.env
+include ../../../.env
 export
 
 # Define variables for your clusters
-CLUSTER_EAST_NAME ?= aks-cluster-dev-east
-CLUSTER_WEST_NAME ?= aks-cluster-dev-west
-RG_EAST ?= aks-multiregion-demo-dev-east-rg
-RG_WEST ?= aks-multiregion-demo-dev-west-rg
-ACR_NAME ?= aksmultiregiondemoacr
-
-###### ACR ######
-
-login-acr:
-	az acr login --name $(ACR_NAME)
-
-empty-acr:
-	az acr repository delete --name $(ACR_NAME) --repository basic-demo-microservice-01 --yes || true
+CLUSTER_EAST_NAME ?= $(AZURE_CLUSTER_EAST)
+CLUSTER_WEST_NAME ?= $(AZURE_CLUSTER_WEST)
+RG_EAST ?= $(AZURE_RG_EAST)
+RG_WEST ?= $(AZURE_RG_WEST)
 
 ###### Terraform ######
 
@@ -28,23 +19,30 @@ clean:
 
 init:
 	terraform init -input=false \
-		-backend-config="storage_account_name=${STORAGE_ACCOUNT_NAME}" \
-		-backend-config="container_name=${CONTAINER_NAME}" \
-		-backend-config="resource_group_name=${STATE_RESOURCE_GROUP}"
+		-backend-config="storage_account_name=${AZURE_STORAGE_ACCOUNT_NAME}" \
+		-backend-config="container_name=${AZURE_CONTAINER_NAME}" \
+		-backend-config="resource_group_name=${AZURE_STATE_RESOURCE_GROUP}"
 
 refresh:
-	make lint && terraform refresh -input=false
+	make lint && \
+	terraform refresh \
+	-var "acr_registry_id=${AZURE_ACR_REGISTRY_ID}" \
+	-input=false
 
 plan:
-	make lint && terraform plan -input=false -out=tfplan
+	make lint && \
+	terraform plan \
+	-var "acr_registry_id=${AZURE_ACR_REGISTRY_ID}" \
+	-input=false -out=tfplan
 
 apply:
 	terraform apply -input=false tfplan
 
 destroy:
 	make lint && \
-	make empty-acr && \
-	terraform destroy -auto-approve
+	terraform destroy \
+	-var "acr_registry_id=${AZURE_ACR_REGISTRY_ID}" \
+	-auto-approve
 
 ###### KubeConfig ######
 .PHONY: kubeconfig-east kubeconfig-west use-east use-west

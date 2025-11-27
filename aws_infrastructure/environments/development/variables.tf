@@ -4,12 +4,6 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "repository_name" {
-  description = "Name of the ECR repository to create."
-  type        = string
-  default     = "basic-demo-microservice-01"
-}
-
 variable "remote_state_bucket" {
   type        = string
   description = "Remote State Bucket to fetch outputs from other stacks"
@@ -83,21 +77,21 @@ variable "domain_name" {
 }
 
 variable "subdomain" {
-  description = "The subdomain for the failover record (e.g., 'eks-demo' creates eks-demo.domain.com)"
+  description = "The subdomain for the failover record (e.g., 'multi-cloud' creates multi-cloud.domain.com)"
   type        = string
-  default     = "eks-demo"
+  default     = "multi-cloud"
 }
 
 variable "lb_hostname_east" {
   description = "LoadBalancer hostname for the east region (set after k8s service deployment)"
   type        = string
-  default     = "af0b5d56db7444ba282a8ae1cf20dbc9-149072603.us-east-1.elb.amazonaws.com"
+  default     = "aedebc80d72774185a37eaca71389ebf-844492847.us-east-1.elb.amazonaws.com"
 }
 
 variable "lb_hostname_west" {
   description = "LoadBalancer hostname for the west region (set after k8s service deployment)"
   type        = string
-  default     = "a1579263112a14a1291db4ae79b23d73-179086245.us-west-2.elb.amazonaws.com"
+  default     = "a0b4d78f4118d453fad680d95a45a628-1654497485.us-west-2.elb.amazonaws.com"
 }
 
 # =============================================================================
@@ -113,13 +107,13 @@ variable "enable_cross_cloud_failover" {
 variable "azure_lb_ip_east" {
   description = "Azure AKS East US LoadBalancer IP (set after k8s service deployment)"
   type        = string
-  default     = "172.210.122.34"
+  default     = "4.157.63.47"
 }
 
 variable "azure_lb_ip_west" {
   description = "Azure AKS West US 2 LoadBalancer IP (set after k8s service deployment)"
   type        = string
-  default     = "20.3.24.153"
+  default     = "48.192.74.104"
 }
 
 # =============================================================================
@@ -127,7 +121,7 @@ variable "azure_lb_ip_west" {
 # =============================================================================
 
 variable "aws_pool_subdomain" {
-  description = "Subdomain for the AWS weighted pool (creates aws-pool.eks-demo.domain.com)"
+  description = "Subdomain for the AWS weighted pool (creates aws-pool.multi-cloud.domain.com)"
   type        = string
   default     = "aws-pool"
 }
